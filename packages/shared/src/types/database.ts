@@ -118,3 +118,17 @@ export interface ContentWithSummary extends Content {
 export interface TopicWithCount extends Topic {
   content_count?: number;
 }
+
+export interface Theme {
+  id: string;
+  topic_id: string;
+  title: string;
+  content_ids: string[];
+  detected_at: string;
+  expires_at: string;
+}
+
+export interface ThemeWithContent extends Theme {
+  topic: Topic;
+  content: ContentWithSummary[];
+}
