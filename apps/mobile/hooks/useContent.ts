@@ -48,7 +48,8 @@ export function useContentById(contentId: string) {
         .select(`
           *,
           source:sources(*),
-          summary:summaries(*)
+          summary:summaries(*),
+          user_content:user_content(*)
         `)
         .eq('id', contentId)
         .single();

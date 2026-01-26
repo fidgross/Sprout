@@ -79,6 +79,35 @@ export function useMarkAsRead() {
   });
 }
 
+export function useUnsaveContent() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (contentId: string) => {
+      if (!user) throw new Error('Not authenticated');
+
+      // When unsaving, change status to 'read' (moves from saved to history)
+      const { error } = await supabase
+        .from('user_content')
+        .upsert({
+          user_id: user.id,
+          content_id: contentId,
+          status: 'read' as ContentStatus,
+          read_at: new Date().toISOString(),
+        });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
+      queryClient.invalidateQueries({ queryKey: ['saved'] });
+      queryClient.invalidateQueries({ queryKey: ['history'] });
+      queryClient.invalidateQueries({ queryKey: ['content'] });
+    },
+  });
+}
+
 export function useSavedContent() {
   const { user } = useAuth();
 
