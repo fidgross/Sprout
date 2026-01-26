@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useContentById } from '../../hooks/useContent';
 import { useSaveContent, useMarkAsRead, useUnsaveContent } from '../../hooks/useUserContent';
+import { AddToCollectionSheet } from '../../components/AddToCollectionSheet';
 
 const SOURCE_ICONS: Record<string, string> = {
   podcast: 'mic',
@@ -33,6 +34,7 @@ function formatDate(dateString: string): string {
 export default function ContentReaderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const [isCollectionSheetVisible, setIsCollectionSheetVisible] = useState(false);
   const { data: content, isLoading, error } = useContentById(id || '');
   const { mutate: saveContent, isPending: isSaving } = useSaveContent();
   const { mutate: unsaveContent, isPending: isUnsaving } = useUnsaveContent();
@@ -187,6 +189,16 @@ export default function ContentReaderScreen() {
 
         <TouchableOpacity
           style={styles.actionButton}
+          onPress={() => setIsCollectionSheetVisible(true)}
+          accessibilityLabel="Add to collection"
+          accessibilityRole="button"
+        >
+          <Ionicons name="folder-outline" size={24} color="#fff" />
+          <Text style={styles.actionButtonText}>Collect</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.actionButton}
           onPress={handleOpenOriginal}
           accessibilityLabel="Open original article"
           accessibilityRole="button"
@@ -205,6 +217,13 @@ export default function ContentReaderScreen() {
           <Text style={styles.actionButtonText}>Share</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Add to Collection Sheet */}
+      <AddToCollectionSheet
+        visible={isCollectionSheetVisible}
+        contentId={id || ''}
+        onClose={() => setIsCollectionSheetVisible(false)}
+      />
     </ScrollView>
   );
 }

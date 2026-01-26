@@ -56,6 +56,7 @@ export default function RootLayout() {
         <Stack.Screen name="(onboarding)" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="content" />
+        <Stack.Screen name="collections" />
       </Stack>
     </QueryClientProvider>
   );

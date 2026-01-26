@@ -11,12 +11,14 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSavedContent, useUnsaveContent, useHistory, useHighlights, useSaveContent } from '../../hooks/useUserContent';
+import { useCollections } from '../../hooks/useCollections';
 import { ContentCard } from '../../components/ContentCard';
 import { HighlightCard } from '../../components/HighlightCard';
 import type { ContentWithSummary } from '@curator/shared';
 import type { HighlightWithContent } from '../../hooks/useUserContent';
+import type { Collection } from '../../hooks/useCollections';
 
-type Segment = 'saved' | 'history' | 'notes';
+type Segment = 'saved' | 'history' | 'notes' | 'collections';
 
 interface SegmentOption {
   key: Segment;
@@ -28,6 +30,7 @@ const SEGMENTS: SegmentOption[] = [
   { key: 'saved', label: 'Saved', icon: 'bookmark' },
   { key: 'history', label: 'History', icon: 'time' },
   { key: 'notes', label: 'Notes', icon: 'document-text' },
+  { key: 'collections', label: 'Collections', icon: 'folder' },
 ];
 
 export default function LibraryScreen() {
@@ -58,6 +61,14 @@ export default function LibraryScreen() {
     refetch: refetchHighlights,
     isRefetching: isRefetchingHighlights,
   } = useHighlights();
+
+  const {
+    data: collections,
+    isLoading: collectionsLoading,
+    error: collectionsError,
+    refetch: refetchCollections,
+    isRefetching: isRefetchingCollections,
+  } = useCollections();
 
   const { mutate: unsaveContent } = useUnsaveContent();
   const { mutate: saveContent } = useSaveContent();
@@ -144,6 +155,39 @@ export default function LibraryScreen() {
       highlight={item}
       onPress={() => handleCardPress(item.content.id)}
     />
+  );
+
+  const handleCollectionPress = (collectionId: string) => {
+    router.push(`/collections/${collectionId}`);
+  };
+
+  const renderCollectionItem = ({ item }: { item: Collection }) => (
+    <TouchableOpacity
+      style={styles.collectionCard}
+      onPress={() => handleCollectionPress(item.id)}
+      accessibilityLabel={`${item.name}, ${item.item_count} items`}
+      accessibilityHint="Tap to view collection contents"
+    >
+      <View style={styles.collectionCardContent}>
+        <View style={styles.collectionIcon}>
+          <Ionicons name="folder" size={24} color="#3b82f6" />
+        </View>
+        <View style={styles.collectionInfo}>
+          <Text style={styles.collectionName} numberOfLines={1}>
+            {item.name}
+          </Text>
+          {item.description ? (
+            <Text style={styles.collectionDescription} numberOfLines={1}>
+              {item.description}
+            </Text>
+          ) : null}
+          <Text style={styles.collectionItemCount}>
+            {item.item_count} {item.item_count === 1 ? 'item' : 'items'}
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color="#64748b" />
+      </View>
+    </TouchableOpacity>
   );
 
   const renderSavedSection = () => {
@@ -242,6 +286,64 @@ export default function LibraryScreen() {
     );
   };
 
+  const renderCollectionsSection = () => {
+    if (collectionsLoading) return renderLoading();
+    if (collectionsError) return renderError(refetchCollections);
+
+    const collectionsList = collections ?? [];
+    if (collectionsList.length === 0) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="folder-open-outline" size={64} color="#334155" />
+          <Text style={styles.emptyTitle}>No collections yet</Text>
+          <Text style={styles.emptySubtitle}>
+            Create collections to organize your content
+          </Text>
+          <TouchableOpacity
+            style={styles.viewAllButton}
+            onPress={() => router.push('/collections')}
+            accessibilityLabel="Create your first collection"
+            accessibilityRole="button"
+          >
+            <Ionicons name="add" size={20} color="#fff" />
+            <Text style={styles.viewAllButtonText}>Create Collection</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.collectionsContainer}>
+        <FlatList
+          data={collectionsList}
+          renderItem={renderCollectionItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.collectionsListContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetchingCollections}
+              onRefresh={refetchCollections}
+              tintColor="#3b82f6"
+              colors={['#3b82f6']}
+            />
+          }
+          ListFooterComponent={
+            <TouchableOpacity
+              style={styles.viewAllCollectionsButton}
+              onPress={() => router.push('/collections')}
+              accessibilityLabel="View all collections"
+              accessibilityRole="button"
+            >
+              <Text style={styles.viewAllCollectionsText}>View All Collections</Text>
+              <Ionicons name="arrow-forward" size={18} color="#3b82f6" />
+            </TouchableOpacity>
+          }
+          accessibilityLabel="Collections list"
+        />
+      </View>
+    );
+  };
+
   const renderContent = () => {
     switch (selectedSegment) {
       case 'saved':
@@ -250,6 +352,8 @@ export default function LibraryScreen() {
         return renderHistorySection();
       case 'notes':
         return renderNotesSection();
+      case 'collections':
+        return renderCollectionsSection();
       default:
         return null;
     }
@@ -360,5 +464,78 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#fff',
+  },
+  collectionsContainer: {
+    flex: 1,
+  },
+  collectionsListContent: {
+    padding: 16,
+  },
+  collectionCard: {
+    backgroundColor: '#1e293b',
+    borderRadius: 12,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  collectionCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+  },
+  collectionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  collectionInfo: {
+    flex: 1,
+    marginRight: 8,
+  },
+  collectionName: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 2,
+  },
+  collectionDescription: {
+    fontSize: 14,
+    color: '#94a3b8',
+    marginBottom: 4,
+  },
+  collectionItemCount: {
+    fontSize: 13,
+    color: '#64748b',
+  },
+  viewAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: '#3b82f6',
+    borderRadius: 12,
+  },
+  viewAllButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  viewAllCollectionsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    marginTop: 8,
+  },
+  viewAllCollectionsText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#3b82f6',
   },
 });
