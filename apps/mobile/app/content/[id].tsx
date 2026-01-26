@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useContentById } from '../../hooks/useContent';
 import { useSaveContent, useMarkAsRead, useUnsaveContent } from '../../hooks/useUserContent';
 import { AddToCollectionSheet } from '../../components/AddToCollectionSheet';
+import { NotionExportButton } from '../../components/NotionExportButton';
 
 const SOURCE_ICONS: Record<string, string> = {
   podcast: 'mic',
@@ -216,6 +217,8 @@ export default function ContentReaderScreen() {
           <Ionicons name="share-outline" size={24} color="#fff" />
           <Text style={styles.actionButtonText}>Share</Text>
         </TouchableOpacity>
+
+        <NotionExportButton contentId={id || ''} style="icon" />
       </View>
 
       {/* Add to Collection Sheet */}
