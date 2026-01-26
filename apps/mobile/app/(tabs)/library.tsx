@@ -1,10 +1,10 @@
 import { View, Text, StyleSheet } from 'react-native';
 
-export default function HomeScreen() {
+export default function LibraryScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Your Feed</Text>
-      <Text style={styles.subtitle}>Content will appear here</Text>
+      <Text style={styles.title}>Your Library</Text>
+      <Text style={styles.subtitle}>Saved content and notes</Text>
     </View>
   );
 }
