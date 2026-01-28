@@ -10,7 +10,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.14.0",
     "@supabase/supabase-js": "^2.39.0",
-    "@trigger.dev/sdk": "^3.0.0",
+    "@trigger.dev/sdk": "^4.3.3",
     "googleapis": "^170.1.0",
     "openai": "^4.24.0",
     "rss-parser": "^3.13.0",

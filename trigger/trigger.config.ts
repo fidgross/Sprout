@@ -1,9 +1,10 @@
 import { defineConfig } from "@trigger.dev/sdk/v3";
 
 export default defineConfig({
-  project: "curator",
+  project: "proj_hgdnybyyfcjndrpnyhpe",
   runtime: "node",
   logLevel: "log",
+  maxDuration: 300, // 5 minutes max per task
   retries: {
     enabledInDev: true,
     default: {

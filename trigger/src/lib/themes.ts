@@ -1,9 +1,18 @@
 import { supabase } from "./supabase";
 import Anthropic from "@anthropic-ai/sdk";
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+// Lazy initialization to avoid failing at import time when API key is not set
+let anthropic: Anthropic | null = null;
+
+function getAnthropic(): Anthropic {
+  if (!anthropic) {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      throw new Error("ANTHROPIC_API_KEY environment variable is required");
+    }
+    anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  }
+  return anthropic;
+}
 
 interface ContentWithEmbedding {
   id: string;
@@ -63,7 +72,7 @@ ${titles.slice(0, 10).map((t) => `- ${t}`).join("\n")}
 Subtitle:`;
 
   try {
-    const response = await anthropic.messages.create({
+    const response = await getAnthropic().messages.create({
       model: "claude-3-5-sonnet-20241022",
       max_tokens: 100,
       messages: [
