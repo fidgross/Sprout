@@ -1,0 +1,426 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Maya's Garden</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@600;800&display=swap">
+<style>
+/* Layout: one planter box of 25 plots. Folded, it stacks under the title with the
+   tools below. Unfolded, the box takes one half of the screen and the tools the
+   other, with an empty gutter where the hinge sits. */
+:root{
+  --sky:#cfeef2; --sky2:#e9f8e4; --ink:#2f4a3c; --ink-soft:#5d7a6a;
+  --card:#ffffff; --wood:#b9824f; --wood-edge:#8f5f35; --soil:#7a5238; --soil-lit:#8d6145;
+  --berry:#ef5d86; --sun:#ffc93c; --leaf:#3fae6a;
+  --display:"Baloo 2","Arial Rounded MT Bold","Trebuchet MS",sans-serif;
+  --body:"Nunito","Avenir Next","Segoe UI",sans-serif;
+  --gap:clamp(4px,1.4cqw,9px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --sky:#14263a; --sky2:#1c3a3a; --ink:#eaf6ec; --ink-soft:#a9c4b6;
+  --card:#24405a; --wood:#7a5334; --wood-edge:#55371f; --soil:#3f2a1e; --soil-lit:#4f3626;
+  --berry:#ff7fa3; --sun:#ffd65c; --leaf:#5fcf88; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --sky:#14263a; --sky2:#1c3a3a; --ink:#eaf6ec; --ink-soft:#a9c4b6;
+  --card:#24405a; --wood:#7a5334; --wood-edge:#55371f; --soil:#3f2a1e; --soil-lit:#4f3626;
+  --berry:#ff7fa3; --sun:#ffd65c; --leaf:#5fcf88; color-scheme:dark}
+
+html,body{height:100%}
+body{
+  margin:0; box-sizing:border-box; overflow:hidden;
+  background:linear-gradient(180deg,var(--sky),var(--sky2));
+  color:var(--ink); font-family:var(--body); font-weight:600;
+  padding-block:12px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+button{font:inherit; color:inherit; border:0; background:none; padding:0; cursor:pointer}
+button:focus-visible{outline:3px solid var(--berry); outline-offset:2px}
+
+.app{height:100%; max-width:540px; margin:0 auto; display:grid; gap:10px;
+  grid-template-rows:auto minmax(0,1fr) auto auto}
+.panel{display:contents}
+.top{order:0} .stage{order:1} .tray{order:2} .book{order:3}
+
+/* header */
+.top{display:grid; grid-template-columns:1fr auto; gap:2px 10px; align-items:center}
+h1{margin:0; font-family:var(--display); font-weight:800; font-size:clamp(26px,7vw,36px); line-height:1}
+h1 span{color:var(--berry)}
+.scores{display:flex; gap:8px; align-items:center}
+.pill{background:var(--card); border-radius:14px; padding:4px 12px; text-align:center; min-width:58px}
+.pill small{display:block; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft); font-weight:800}
+.pill b{font-family:var(--display); font-size:20px; line-height:1.05; font-variant-numeric:tabular-nums}
+.say{grid-column:1/-1; margin:0; min-height:1.3em; font-size:15px; color:var(--ink-soft); font-weight:800}
+
+/* board */
+.stage{container-type:size; display:grid; place-items:center; min-height:0; min-width:0}
+.board{width:min(100cqw,100cqh); aspect-ratio:1; box-sizing:border-box;
+  display:grid; grid-template-columns:repeat(5,1fr); gap:var(--gap); padding:calc(var(--gap)*1.6);
+  background:var(--wood); border-radius:7%; box-shadow:0 6px 0 var(--wood-edge), 0 14px 22px -10px rgba(40,30,20,.45)}
+.plot{position:relative; aspect-ratio:1; border-radius:24%; background:var(--soil);
+  box-shadow:inset 0 3px 0 rgba(0,0,0,.18)}
+.plot:empty:active{background:var(--soil-lit)}
+.bugging .plot:not(:empty){outline:3px dashed var(--sun); outline-offset:-3px}
+.plant{position:absolute; inset:4%; display:block; transition:transform .22s ease-in, opacity .22s ease-in}
+.plant svg{width:100%; height:100%; display:block; overflow:visible}
+.plant .sway{transform-origin:50% 95%; animation:sway 3.2s ease-in-out infinite; animation-delay:var(--d,0s)}
+.eye{transform-box:fill-box; transform-origin:center; animation:blink 4.6s infinite; animation-delay:var(--d,0s)}
+.pop{animation:pop .28s cubic-bezier(.3,1.6,.5,1)}
+.grow{animation:grow .42s cubic-bezier(.3,1.7,.5,1)}
+.fly{transform:translate(calc(var(--dx)*(104% + var(--gap))),calc(var(--dy)*(104% + var(--gap)))) scale(.35); opacity:0}
+.nope{animation:nope .3s}
+.away{animation:away .45s ease-in forwards}
+.plus{position:absolute; left:50%; top:0; z-index:3; pointer-events:none; white-space:nowrap;
+  font-family:var(--display); font-weight:800; font-size:clamp(16px,5cqw,26px); color:var(--berry);
+  text-shadow:0 2px 0 var(--card),0 -1px 0 var(--card),1px 0 0 var(--card),-1px 0 0 var(--card); animation:rise .9s ease-out forwards}
+.spark{position:absolute; left:50%; top:50%; width:16%; height:16%; margin:-8%; z-index:3; pointer-events:none;
+  border-radius:50%; background:var(--sun); animation:spark .7s ease-out forwards}
+@keyframes sway{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+@keyframes blink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
+@keyframes pop{from{transform:scale(.3)}to{transform:scale(1)}}
+@keyframes grow{0%{transform:scale(.4)}60%{transform:scale(1.18)}100%{transform:scale(1)}}
+@keyframes nope{25%{transform:translateX(-6%)}75%{transform:translateX(6%)}}
+@keyframes away{to{transform:translateY(-120%) rotate(25deg) scale(.5); opacity:0}}
+@keyframes rise{from{transform:translate(-50%,10%)}to{transform:translate(-50%,-110%); opacity:0}}
+@keyframes spark{to{transform:translate(var(--sx),var(--sy)) scale(.2); opacity:0}}
+@keyframes nudge{50%{transform:scale(1.08)}}
+
+/* tools */
+.tray{display:grid; grid-template-columns:1.25fr 1fr 1fr; gap:10px}
+.tool{background:var(--card); border-radius:18px; padding:6px 10px; display:flex; align-items:center; gap:8px;
+  min-height:64px; box-sizing:border-box; box-shadow:0 3px 0 rgba(0,0,0,.1); text-align:left; min-width:0}
+button.tool:active{transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.1)}
+.tool .pic{flex:none; width:48px; height:48px; position:relative}
+.tool .pic svg{width:100%; height:100%; overflow:visible}
+.tool .txt{min-width:0; line-height:1.15}
+.tool small{display:block; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft); font-weight:800}
+.tool b{font-family:var(--display); font-size:16px}
+.tool.next{background:var(--sun); color:#4a3413}
+.tool.next small{color:#7a5a1c}
+.tool[aria-pressed="true"]{outline:3px solid var(--berry)}
+.tool.hint{animation:nudge .8s ease-in-out infinite}
+.tool:disabled{opacity:.55}
+@media (max-width:440px){
+  .tool{flex-direction:column; gap:0; padding:6px 4px; text-align:center}
+  .tool .pic{width:42px; height:42px}
+}
+
+/* friends found */
+.book{display:flex; align-items:center; gap:8px}
+.friends{flex:1; display:grid; grid-template-columns:repeat(8,1fr); gap:4px; margin:0; padding:0; list-style:none}
+.friends li{min-width:0; text-align:center}
+.friends .pic{display:block; width:100%; max-width:44px; aspect-ratio:1; margin:0 auto}
+.friends svg{width:100%; height:100%; overflow:visible}
+.friends li.unknown .pic{border-radius:50%; background:var(--card); opacity:.55; display:grid; place-items:center;
+  font-family:var(--display); color:var(--ink-soft); font-size:16px}
+.friends span{display:none; font-size:12px; font-weight:800; color:var(--ink-soft)}
+.book .icons{display:flex; gap:8px}
+.icon{flex:none; width:44px; height:44px; border-radius:50%; background:var(--card); display:grid; place-items:center;
+  box-shadow:0 3px 0 rgba(0,0,0,.1)}
+.icon svg{width:22px; height:22px; fill:none; stroke:var(--ink); stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round}
+.icon.sure{background:var(--berry)} .icon.sure svg{stroke:var(--card)}
+
+/* end card */
+.done{position:fixed; inset:0; z-index:20; display:grid; place-items:center; padding:24px;
+  background:color-mix(in srgb,var(--sky) 78%,transparent)}
+.done div{background:var(--card); border-radius:28px; padding:22px 26px; text-align:center; max-width:300px;
+  box-shadow:0 6px 0 rgba(0,0,0,.12); animation:grow .4s}
+.done h2{margin:0 0 4px; font-family:var(--display); font-size:28px; line-height:1.1; text-wrap:balance}
+.done p{margin:0 0 14px; font-size:16px}
+.go{background:var(--berry); color:#fff; font-family:var(--display); font-weight:800; font-size:20px;
+  padding:10px 22px; border-radius:999px; box-shadow:0 4px 0 rgba(0,0,0,.18)}
+
+/* Unfolded: each half of the screen gets one job, and the hinge gets a clear gutter. */
+@media (min-width:600px) and (min-height:520px){
+  .app{max-width:none; gap:0}
+  .panel{display:flex; flex-direction:column; justify-content:center; gap:16px; min-width:0; min-height:0}
+  .friends{grid-template-columns:repeat(4,1fr); gap:10px 6px}
+  .friends .pic{max-width:64px}
+  .friends span{display:block}
+  .book{align-items:flex-end}
+  .book .icons{display:grid; gap:10px}
+  .say{font-size:17px}
+}
+@media (min-width:600px) and (min-height:520px) and (orientation:landscape){
+  .app{grid-template-columns:1fr 1fr; grid-template-rows:minmax(0,1fr); column-gap:48px}
+  .panel{max-width:400px; justify-self:center; width:100%; order:2}
+}
+@media (min-width:600px) and (min-height:520px) and (orientation:portrait){
+  .app{grid-template-rows:minmax(0,1fr) minmax(0,1fr); row-gap:44px}
+  .panel{max-width:520px; justify-self:center; width:100%; justify-content:flex-start}
+}
+@media (prefers-reduced-motion:reduce){
+  .plant .sway,.eye,.tool.hint{animation:none}
+}
+</style>
+
+<main class="app" id="app">
+  <section class="stage" aria-label="Garden"><div class="board" id="board"></div></section>
+  <div class="panel">
+    <header class="top">
+      <h1>Maya's <span>Garden</span></h1>
+      <div class="scores">
+        <div class="pill"><small>Score</small><b id="score">0</b></div>
+        <div class="pill"><small>Best</small><b id="best">0</b></div>
+      </div>
+      <p class="say" id="say" aria-live="polite"></p>
+    </header>
+    <div class="tray">
+      <div class="tool next"><span class="pic" id="nextPic"></span><span class="txt"><small>Plant next</small><b id="nextName"></b></span></div>
+      <button class="tool" id="pocket" type="button"><span class="pic" id="pocketPic"></span><span class="txt"><small>Pocket</small><b id="pocketName"></b></span></button>
+      <button class="tool" id="bug" type="button" aria-pressed="false"><span class="pic" id="bugPic"></span><span class="txt"><small>Ladybugs</small><b id="bugCount"></b></span></button>
+    </div>
+    <div class="book">
+      <ul class="friends" id="friends" aria-label="Friends found"></ul>
+      <div class="icons">
+        <button class="icon" id="sound" type="button" aria-label="Sound"></button>
+        <button class="icon" id="again" type="button" aria-label="Start a new garden"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4v5h5"/></svg></button>
+      </div>
+    </div>
+  </div>
+</main>
+<div class="done" id="done" hidden><div>
+  <h2>The garden is full!</h2>
+  <p id="doneText"></p>
+  <button class="go" id="replay" type="button">Plant a new garden</button>
+</div></div>
+
+<script>
+(() => {
+const N = 5, MAX = 7, KEY = 'maya-garden-v1';
+const NAMES = ['Seed','Sprout','Clover','Daisy','Tulip','Sunflower','Apple tree','Rainbow bloom'];
+const VAL = [1,3,9,25,70,200,550,1500];
+const CHEERS = ['Lovely, Maya!','So pretty!','Look at it grow!','Green thumbs!','Wonderful!','The bees approve!'];
+
+/* ---------- art ---------- */
+const face = (cx, cy, s = 1, ink = '#4a3428') =>
+  `<ellipse class="eye" cx="${cx-9*s}" cy="${cy}" rx="${3*s}" ry="${3.8*s}" fill="${ink}"/>` +
+  `<ellipse class="eye" cx="${cx+9*s}" cy="${cy}" rx="${3*s}" ry="${3.8*s}" fill="${ink}"/>` +
+  `<path d="M${cx-4*s} ${cy+5*s}q${4*s} ${4.5*s} ${8*s} 0" stroke="${ink}" stroke-width="${2.2*s}" fill="none" stroke-linecap="round"/>` +
+  `<circle cx="${cx-16*s}" cy="${cy+6*s}" r="${3.6*s}" fill="#ff8fab" opacity=".75"/>` +
+  `<circle cx="${cx+16*s}" cy="${cy+6*s}" r="${3.6*s}" fill="#ff8fab" opacity=".75"/>`;
+const petals = (n, cx, cy, dist, rx, ry, fill) => {
+  let s = '';
+  for (let i = 0; i < n; i++) s += `<ellipse cx="${cx}" cy="${cy-dist}" rx="${rx}" ry="${ry}" fill="${Array.isArray(fill) ? fill[i % fill.length] : fill}" transform="rotate(${i*360/n} ${cx} ${cy})"/>`;
+  return s;
+};
+const stem = `<path d="M50 60V93" stroke="#4c9e55" stroke-width="5" stroke-linecap="round" fill="none"/>` +
+  `<ellipse cx="38" cy="82" rx="11" ry="5.5" fill="#6cc070" transform="rotate(28 38 82)"/>` +
+  `<ellipse cx="62" cy="82" rx="11" ry="5.5" fill="#6cc070" transform="rotate(-28 62 82)"/>`;
+const ART = [
+  () => `<path d="M50 20C74 40 80 62 69 77C59 90 41 90 31 77C20 62 26 40 50 20Z" fill="#d79a62"/><ellipse cx="40" cy="46" rx="5" ry="9" fill="#f0c08c" opacity=".7" transform="rotate(20 40 46)"/>` + face(50, 62),
+  () => `<path d="M50 44V26" stroke="#4c9e55" stroke-width="5" stroke-linecap="round"/><ellipse cx="37" cy="22" rx="14" ry="8" fill="#5fc06a" transform="rotate(-24 37 22)"/><ellipse cx="63" cy="22" rx="14" ry="8" fill="#5fc06a" transform="rotate(24 63 22)"/><circle cx="50" cy="65" r="25" fill="#a5e07f"/>` + face(50, 64),
+  () => stem + `<circle cx="50" cy="26" r="17" fill="#43b565"/><circle cx="31" cy="48" r="17" fill="#43b565"/><circle cx="69" cy="48" r="17" fill="#43b565"/><circle cx="50" cy="43" r="16" fill="#58c877"/>` + face(50, 42, .85),
+  () => stem + petals(10, 50, 40, 21, 8.5, 13, '#fffdf5') + `<circle cx="50" cy="40" r="16" fill="#ffd34d"/>` + face(50, 39, .75),
+  () => stem + `<path d="M25 20Q35 34 41 19Q50 36 59 19Q65 34 75 20V42A25 25 0 0 1 25 42Z" fill="#ff7fa3"/><path d="M33 30Q33 50 44 58" stroke="#ffb0c6" stroke-width="4" stroke-linecap="round" fill="none" opacity=".6"/>` + face(50, 46, .9),
+  () => stem + petals(14, 50, 40, 24, 6.5, 12, '#ffc21f') + `<circle cx="50" cy="40" r="18" fill="#c58a4a"/>` + face(50, 39, .8, '#3d2616'),
+  () => `<rect x="43" y="60" width="14" height="33" rx="6" fill="#a06a3f"/><circle cx="29" cy="50" r="17" fill="#3fae6a"/><circle cx="71" cy="50" r="17" fill="#3fae6a"/><circle cx="50" cy="38" r="29" fill="#4cbd77"/><circle cx="29" cy="34" r="5.5" fill="#f2495c"/><circle cx="73" cy="36" r="5.5" fill="#f2495c"/><circle cx="56" cy="15" r="5.5" fill="#f2495c"/>` + face(50, 44),
+  () => stem + petals(8, 50, 40, 23, 10, 14, ['#ff6b8b','#ff9f43','#ffd34d','#6fd36f','#4fc3f7','#7986ff','#b388ff','#ff8ad8']) + `<circle cx="50" cy="40" r="17" fill="#fff6c9"/><path d="M50 2l2.6 5.4 5.9.8-4.3 4.1 1 5.9L50 15.4l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z" fill="#ffd34d" stroke="#fff" stroke-width="1"/>` + face(50, 39, .8)
+];
+const plantSVG = (s, d = 0) => `<svg viewBox="0 0 100 100" aria-hidden="true" style="--d:${d}s"><g class="sway">${ART[s]()}</g></svg>`;
+const BUG = `<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M36 22Q30 10 24 12M64 22Q70 10 76 12" stroke="#3a2a2a" stroke-width="3.5" fill="none" stroke-linecap="round"/><circle cx="50" cy="34" r="20" fill="#3a2a2a"/><ellipse cx="50" cy="60" rx="34" ry="31" fill="#f2495c"/><path d="M50 30V91" stroke="#3a2a2a" stroke-width="3"/><circle cx="33" cy="52" r="6" fill="#3a2a2a"/><circle cx="67" cy="52" r="6" fill="#3a2a2a"/><circle cx="36" cy="74" r="5" fill="#3a2a2a"/><circle cx="64" cy="74" r="5" fill="#3a2a2a"/><circle class="eye" cx="42" cy="29" r="4" fill="#fff"/><circle class="eye" cx="58" cy="29" r="4" fill="#fff"/></svg>`;
+const SOUND_ON = `<svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>`;
+const SOUND_OFF = `<svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9.5l4 5M21 9.5l-4 5"/></svg>`;
+
+/* ---------- state ---------- */
+const $ = id => document.getElementById(id);
+const board = $('board'), cells = [];
+let S, busy = false, bugMode = false, sure = 0;
+
+const roll = () => {
+  const w = [60, 28, S.found >= 3 ? 10 : 0, S.found >= 5 ? 3 : 0];
+  let r = Math.random() * w.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < w.length; i++) { if ((r -= w[i]) < 0) return i; }
+  return 0;
+};
+const fresh = best => {
+  S = { board: Array(N * N).fill(-1), next: 0, pocket: -1, score: 0, best: best || 0, bugs: 1, merges: 0, found: 0, mute: S ? S.mute : false };
+  S.next = 0;
+};
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+const load = () => {
+  try {
+    const o = JSON.parse(localStorage.getItem(KEY));
+    if (o && Array.isArray(o.board) && o.board.length === N * N) return o;
+  } catch (e) {}
+  return null;
+};
+
+/* ---------- sound ---------- */
+let ac;
+const tone = (f, t = 0, len = .16, type = 'sine', vol = .12) => {
+  if (S.mute) return;
+  try {
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    if (ac.state === 'suspended') ac.resume();
+    const o = ac.createOscillator(), g = ac.createGain(), at = ac.currentTime + t;
+    o.type = type; o.frequency.value = f;
+    g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(vol, at + .015);
+    g.gain.exponentialRampToValueAtTime(.001, at + len);
+    o.connect(g).connect(ac.destination); o.start(at); o.stop(at + len + .02);
+  } catch (e) {}
+};
+const SCALE = [262, 294, 330, 392, 440, 523, 587, 659, 784, 880];
+const sfx = {
+  place: () => tone(330, 0, .12, 'triangle'),
+  merge: (st, combo) => [0, 2, 4].forEach((k, i) => tone(SCALE[Math.min(st + combo - 1, 5) + k], i * .07, .22, 'triangle')),
+  bug: () => { tone(700, 0, .08, 'square', .05); tone(940, .08, .1, 'square', .05); },
+  nope: () => tone(160, 0, .1, 'sine', .1)
+};
+
+/* ---------- drawing ---------- */
+const say = t => { $('say').textContent = t; };
+const label = i => `Row ${Math.floor(i / N) + 1}, column ${i % N + 1}: ${S.board[i] < 0 ? 'empty plot' : NAMES[S.board[i]]}`;
+const drawCell = (i, anim) => {
+  const c = cells[i], s = S.board[i];
+  c.innerHTML = s < 0 ? '' : `<span class="plant${anim ? ' ' + anim : ''}">${plantSVG(s, -((i * 7) % 10) / 3)}</span>`;
+  c.setAttribute('aria-label', label(i));
+};
+const drawHUD = () => {
+  if (S.score > S.best) S.best = S.score;
+  $('score').textContent = S.score; $('best').textContent = S.best;
+  $('nextPic').innerHTML = plantSVG(S.next); $('nextName').textContent = NAMES[S.next];
+  $('pocketPic').innerHTML = S.pocket < 0 ? '' : plantSVG(S.pocket);
+  $('pocketName').textContent = S.pocket < 0 ? 'Empty' : NAMES[S.pocket];
+  $('pocket').setAttribute('aria-label', S.pocket < 0 ? 'Pocket, empty. Tap to save this plant for later.' : `Pocket holds ${NAMES[S.pocket]}. Tap to swap.`);
+  $('bugCount').textContent = '× ' + S.bugs;
+  $('bug').disabled = S.bugs < 1;
+  $('bug').setAttribute('aria-pressed', bugMode);
+  $('bug').classList.toggle('hint', !bugMode && S.bugs > 0 && full());
+  board.classList.toggle('bugging', bugMode);
+  $('sound').innerHTML = S.mute ? SOUND_OFF : SOUND_ON;
+  $('sound').setAttribute('aria-label', S.mute ? 'Turn sound on' : 'Turn sound off');
+  $('friends').innerHTML = NAMES.map((n, s) => s <= S.found
+    ? `<li><span class="pic">${plantSVG(s)}</span><span>${n}</span></li>`
+    : `<li class="unknown"><span class="pic">?</span><span>???</span></li>`).join('');
+};
+const drawAll = () => { for (let i = 0; i < N * N; i++) drawCell(i); drawHUD(); };
+const floatUp = (i, text) => {
+  const el = document.createElement('span'); el.className = 'plus'; el.textContent = text;
+  cells[i].appendChild(el); setTimeout(() => el.remove(), 900);
+};
+const sparkle = i => {
+  for (let k = 0; k < 8; k++) {
+    const el = document.createElement('span'); el.className = 'spark';
+    const a = k * Math.PI / 4;
+    el.style.setProperty('--sx', Math.cos(a) * 480 + '%'); el.style.setProperty('--sy', Math.sin(a) * 480 + '%');
+    cells[i].appendChild(el); setTimeout(() => el.remove(), 700);
+  }
+};
+
+/* ---------- rules ---------- */
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const full = () => S.board.every(v => v >= 0);
+const flood = i => {
+  const st = S.board[i], seen = new Set([i]), q = [i];
+  while (q.length) {
+    const j = q.pop(), x = j % N, y = Math.floor(j / N);
+    [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]].forEach(([a, b]) => {
+      const k = b * N + a;
+      if (a >= 0 && a < N && b >= 0 && b < N && !seen.has(k) && S.board[k] === st) { seen.add(k); q.push(k); }
+    });
+  }
+  return [...seen];
+};
+const checkEnd = () => {
+  if (!full()) return;
+  if (S.bugs > 0) { say('No room left. Send a ladybug to clear a plot.'); drawHUD(); return; }
+  $('doneText').textContent = `Maya grew ${S.score} points of garden` + (S.score >= S.best && S.score > 0 ? ', a new best!' : '.');
+  $('done').hidden = false;
+};
+
+async function tap(i) {
+  if (busy) return;
+  if (S.board[i] >= 0) {
+    const p = cells[i].firstElementChild;
+    if (bugMode) {
+      busy = true; bugMode = false; S.bugs--; sfx.bug();
+      p.classList.add('away'); say('A ladybug carried it off.');
+      await sleep(420); S.board[i] = -1; drawCell(i); drawHUD(); save(); busy = false;
+    } else { p.classList.remove('nope'); void p.offsetWidth; p.classList.add('nope'); sfx.nope(); }
+    return;
+  }
+  if (bugMode) { bugMode = false; drawHUD(); }
+  busy = true;
+  S.board[i] = S.next; S.score += 1; drawCell(i, 'pop'); sfx.place();
+  S.next = roll(); drawHUD();
+  let combo = 1;
+  for (;;) {
+    const g = flood(i);
+    if (g.length < 3) break;
+    const st = S.board[i];
+    await sleep(190);
+    g.forEach(j => {
+      if (j === i) return;
+      const p = cells[j].firstElementChild;
+      p.style.setProperty('--dx', (i % N) - (j % N));
+      p.style.setProperty('--dy', Math.floor(i / N) - Math.floor(j / N));
+      p.classList.add('fly');
+    });
+    sfx.merge(st, combo);
+    await sleep(240);
+    g.forEach(j => { S.board[j] = -1; if (j !== i) drawCell(j); });
+    let gain;
+    if (st === MAX) {
+      gain = 3000 * combo; drawCell(i); sparkle(i); say('A rainbow shower! The whole garden cheers.');
+    } else {
+      S.board[i] = st + 1; drawCell(i, 'grow'); gain = VAL[st + 1] * combo * (g.length > 3 ? 2 : 1);
+      if (st + 1 > S.found) { S.found = st + 1; sparkle(i); say(`New friend: ${NAMES[st + 1]}!`); }
+      else say(combo > 1 ? `${combo} in a row! ` + CHEERS[S.merges % CHEERS.length] : CHEERS[S.merges % CHEERS.length]);
+    }
+    S.score += gain; floatUp(i, '+' + gain);
+    S.merges++;
+    if (S.merges % 5 === 0 && S.bugs < 3) { S.bugs++; say('A ladybug came to help!'); }
+    combo++; drawHUD();
+  }
+  checkEnd(); save(); busy = false;
+}
+
+/* ---------- wiring ---------- */
+function start(data) {
+  const saved = (data && data.state) || load();
+  if (saved) S = saved; else fresh(0);
+  for (let i = 0; i < N * N; i++) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'plot';
+    b.addEventListener('click', () => tap(i));
+    board.appendChild(b); cells.push(b);
+  }
+  $('bugPic').innerHTML = BUG;
+  drawAll();
+  say(S.score ? 'Welcome back, Maya!' : 'Tap a plot to plant. Three of a kind grow into something new.');
+  checkEnd();
+
+  $('pocket').addEventListener('click', () => {
+    if (busy) return;
+    if (S.pocket < 0) { S.pocket = S.next; S.next = roll(); } else { [S.pocket, S.next] = [S.next, S.pocket]; }
+    sfx.place(); drawHUD(); save();
+  });
+  $('bug').addEventListener('click', () => {
+    if (busy || S.bugs < 1) return;
+    bugMode = !bugMode; drawHUD();
+    say(bugMode ? 'Tap a plant for the ladybug to carry away.' : '');
+  });
+  $('sound').addEventListener('click', () => { S.mute = !S.mute; drawHUD(); save(); if (!S.mute) sfx.place(); });
+  const restart = () => {
+    fresh(S.best); bugMode = false; $('done').hidden = true; drawAll(); save();
+    say('A fresh garden for Maya. Tap a plot to plant.');
+  };
+  $('again').addEventListener('click', () => {
+    if (busy) return;
+    const btn = $('again');
+    if (S.score > 0 && !btn.classList.contains('sure')) {
+      btn.classList.add('sure'); say('Tap again to start a new garden.');
+      clearTimeout(sure); sure = setTimeout(() => btn.classList.remove('sure'), 3000);
+      return;
+    }
+    btn.classList.remove('sure'); restart();
+  });
+  $('replay').addEventListener('click', restart);
+}
+const hot = window.claude && window.claude.hot;
+if (hot && hot.snapshot) hot.snapshot(() => ({ state: S }));
+if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
+})();
+</script>
